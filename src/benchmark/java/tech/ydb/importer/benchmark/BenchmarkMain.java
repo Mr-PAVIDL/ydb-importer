@@ -37,6 +37,8 @@ public class BenchmarkMain {
     private static final int DEFAULT_ROWS = 100_000;
     private static final int DEFAULT_BATCH_SIZE = 1000;
     private static final int DEFAULT_POOL_SIZE = 4;
+    private static final int DEFAULT_BUFFER_COUNT = 0;
+    private static final int DEFAULT_WRITER_POOL_SIZE = 0;
     private static final Duration YDB_STARTUP_TIMEOUT = Duration.ofSeconds(60);
     private static final long MEMORY_SAMPLE_INTERVAL_MS = 500;
     private static final String TABLE_OPTIONS_NAME = "default";
@@ -46,6 +48,8 @@ public class BenchmarkMain {
         int rows = DEFAULT_ROWS;
         int batchSize = DEFAULT_BATCH_SIZE;
         int poolSize = DEFAULT_POOL_SIZE;
+        int bufferCount = DEFAULT_BUFFER_COUNT;
+        int writerPoolSize = DEFAULT_WRITER_POOL_SIZE;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -58,6 +62,12 @@ public class BenchmarkMain {
                 case "--pool-size":
                     poolSize = Integer.parseInt(args[++i]);
                     break;
+                case "--buffer-count":
+                    bufferCount = Integer.parseInt(args[++i]);
+                    break;
+                case "--writer-pool-size":
+                    writerPoolSize = Integer.parseInt(args[++i]);
+                    break;
                 default:
                     System.err.println("Unknown argument: " + args[i]);
                     System.exit(1);
@@ -66,11 +76,12 @@ public class BenchmarkMain {
 
         String commitId = loadCommitId();
         printHeader(rows, batchSize, poolSize, commitId);
-        run(rows, batchSize, poolSize, commitId);
+        run(rows, batchSize, poolSize, bufferCount, writerPoolSize, commitId);
     }
 
     @SuppressWarnings("resource")
-    private static void run(int rows, int batchSize, int poolSize, String commitId) throws Exception {
+    private static void run(int rows, int batchSize, int poolSize,
+            int bufferCount, int writerPoolSize, String commitId) throws Exception {
         PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.5");
         LocalYdbTestContainer ydb = new LocalYdbTestContainer();
 
@@ -88,7 +99,8 @@ public class BenchmarkMain {
             System.out.printf("%n=== Data Generation ===%n");
             System.out.printf("Generated %,d rows in %.1fs%n", rows, genElapsed / 1000.0);
 
-            ImporterConfig config = buildConfig(postgres, ydb, batchSize, poolSize);
+            ImporterConfig config = buildConfig(postgres, ydb, batchSize, poolSize,
+                    bufferCount, writerPoolSize);
             MemoryTracker memTracker = new MemoryTracker(MEMORY_SAMPLE_INTERVAL_MS);
 
             System.out.printf("%n=== Import ===%n");
@@ -165,12 +177,20 @@ public class BenchmarkMain {
             PostgreSQLContainer<?> postgres,
             LocalYdbTestContainer ydb,
             int batchSize,
-            int poolSize) {
+            int poolSize,
+            int bufferCount,
+            int writerPoolSize) {
 
         ImporterConfig config = new ImporterConfig();
 
         WorkerConfig workers = new WorkerConfig();
-        workers.setPoolSize(poolSize);
+        workers.setReaderPoolSize(poolSize);
+        if (bufferCount > 0) {
+            workers.setBufferCount(bufferCount);
+        }
+        if (writerPoolSize > 0) {
+            workers.setWriterPoolSize(writerPoolSize);
+        }
         config.setWorkers(workers);
 
         SourceConfig src = new SourceConfig();
