@@ -416,6 +416,16 @@
                     <version>3.3.3</version>
                 </dependency>
                 <dependency>
+                    <groupId>org.apache.arrow</groupId>
+                    <artifactId>arrow-vector</artifactId>
+                    <version>17.0.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.arrow</groupId>
+                    <artifactId>arrow-memory-netty</artifactId>
+                    <version>17.0.0</version>
+                </dependency>
+                <dependency>
                     <groupId>org.junit.jupiter</groupId>
                     <artifactId>junit-jupiter</artifactId>
                     <version>5.13.3</version>

@@ -50,6 +50,7 @@ public class BenchmarkMain {
         int poolSize = DEFAULT_POOL_SIZE;
         int bufferCount = DEFAULT_BUFFER_COUNT;
         int writerPoolSize = DEFAULT_WRITER_POOL_SIZE;
+        boolean useArrow = false;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -68,6 +69,9 @@ public class BenchmarkMain {
                 case "--writer-pool-size":
                     writerPoolSize = Integer.parseInt(args[++i]);
                     break;
+                case "--use-arrow":
+                    useArrow = true;
+                    break;
                 default:
                     System.err.println("Unknown argument: " + args[i]);
                     System.exit(1);
@@ -76,12 +80,12 @@ public class BenchmarkMain {
 
         String commitId = loadCommitId();
         printHeader(rows, batchSize, poolSize, commitId);
-        run(rows, batchSize, poolSize, bufferCount, writerPoolSize, commitId);
+        run(rows, batchSize, poolSize, bufferCount, writerPoolSize, useArrow, commitId);
     }
 
     @SuppressWarnings("resource")
     private static void run(int rows, int batchSize, int poolSize,
-            int bufferCount, int writerPoolSize, String commitId) throws Exception {
+            int bufferCount, int writerPoolSize, boolean useArrow, String commitId) throws Exception {
         PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.5");
         LocalYdbTestContainer ydb = new LocalYdbTestContainer();
 
@@ -100,7 +104,7 @@ public class BenchmarkMain {
             System.out.printf("Generated %,d rows in %.1fs%n", rows, genElapsed / 1000.0);
 
             ImporterConfig config = buildConfig(postgres, ydb, batchSize, poolSize,
-                    bufferCount, writerPoolSize);
+                    bufferCount, writerPoolSize, useArrow);
             MemoryTracker memTracker = new MemoryTracker(MEMORY_SAMPLE_INTERVAL_MS);
 
             System.out.printf("%n=== Import ===%n");
@@ -179,7 +183,8 @@ public class BenchmarkMain {
             int batchSize,
             int poolSize,
             int bufferCount,
-            int writerPoolSize) {
+            int writerPoolSize,
+            boolean useArrow) {
 
         ImporterConfig config = new ImporterConfig();
 
@@ -191,6 +196,7 @@ public class BenchmarkMain {
         if (writerPoolSize > 0) {
             workers.setWriterPoolSize(writerPoolSize);
         }
+        workers.setUseArrow(useArrow);
         config.setWorkers(workers);
 
         SourceConfig src = new SourceConfig();
