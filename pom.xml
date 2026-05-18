@@ -65,6 +65,17 @@
             <artifactId>ydb-sdk-table</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-vector</artifactId>
+            <version>17.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-memory-netty</artifactId>
+            <version>17.0.0</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>tech.ydb.auth</groupId>
             <artifactId>yc-auth-provider</artifactId>
         </dependency>
@@ -213,6 +224,9 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>3.5.4</version>
+                        <configuration>
+                            <argLine>--add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
+                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
