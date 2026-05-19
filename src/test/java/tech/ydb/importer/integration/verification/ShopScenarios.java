@@ -41,7 +41,7 @@ public final class ShopScenarios {
                 .col("name",            STRING,          id -> "Клиент №" + id)
                 .col("is_verified",     BOOL,            id -> id % 3 != 0)
                 .col("registered_date", DATE,            id -> BASE_DATE.plusDays(id % 1460))
-                .col("bio",             STRING,          id -> id % 5 == 0 ? null : "Bio of user " + id)
+                .colNullable("bio",     STRING,          id -> id % 5 == 0 ? null : "Bio of user " + id)
                 .build();
     }
 
@@ -145,7 +145,7 @@ public final class ShopScenarios {
                 .col("order_id",      INT64,           id -> (id % orderCount) + 1)
                 .col("address_id",    INT64,           id -> (id % addressCount) + 1)
                 .col("shipped_at",    DATETIME,        id -> BASE_DT.plusSeconds(id + 60))
-                .col("tracking_code", STRING,          id -> id % 4 == 0 ? null : "TRK-" + id)
+                .colNullable("tracking_code", STRING,    id -> id % 4 == 0 ? null : "TRK-" + id)
                 .partition(PartitionStyle.HASH_INT, "address_id")
                 .build();
     }

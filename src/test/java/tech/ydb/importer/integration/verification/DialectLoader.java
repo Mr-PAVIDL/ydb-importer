@@ -28,7 +28,7 @@ public abstract class DialectLoader {
                 ddl.append(", ");
             }
             ddl.append(cols.get(i).name()).append(' ')
-                    .append(toDdl(cols.get(i).type()));
+                    .append(columnDdl(cols.get(i)));
         }
         if (scenario.blobColumn() != null) {
             String blobType = blobDdlType();
@@ -150,6 +150,10 @@ public abstract class DialectLoader {
     }
 
     protected abstract String toDdl(LogicalType type);
+
+    protected String columnDdl(ColumnSpec col) {
+        return toDdl(col.type());
+    }
 
     protected String blobDdlType() {
         return null;
