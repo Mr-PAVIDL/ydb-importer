@@ -47,8 +47,8 @@ final class RangeSplitter {
         ColumnInfo col = tm.findColumn(ref.getSplitBy());
         if (col == null) {
             throw new IllegalArgumentException(
-                    "split-by column '" + ref.getSplitBy()
-                    + "' not found in table " + td.getSchema() + "." + td.getTable()
+                    "Missing split-by column '" + ref.getSplitBy()
+                    + "' in referenced table " + td.getSchema() + "." + td.getTable()
                     + " (if using <query>, the split-by column must be in the SELECT list)");
         }
         SplitColumnType type = detectType(col.getSqlType(), col.getSqlScale());
