@@ -32,16 +32,38 @@ public class YdbTableBuilder {
     }
 
     public void build() {
+        tab.getBlobTargets().clear();
+        tab.getClobTargets().clear();
+        for (ColumnInfo ci : tab.getMetadata().getColumns()) {
+            if (ci.isBlob()) {
+                tab.getBlobTargets().put(ci.getName(),
+                        buildAuxTable(ci, "String", BlobReader.BLOB_ROW));
+            } else if (ci.isClob()) {
+                tab.getClobTargets().put(ci.getName(),
+                        buildAuxTable(ci, "Text", ClobReader.CLOB_ROW));
+            } else if (isClobOverride(ci.getName())) {
+                validateClobOverride(ci);
+                ci.setSqlType(java.sql.Types.CLOB);
+                tab.getClobTargets().put(ci.getName(),
+                        buildAuxTable(ci, "Text", ClobReader.CLOB_ROW));
+            }
+        }
+
         TargetTable tt = buildMainTable();
         if (tt != null) {
             tab.setTarget(tt);
-            tab.getBlobTargets().clear();
-            for (ColumnInfo ci : tab.getMetadata().getColumns()) {
-                if (ci.isBlob()) {
-                    tab.getBlobTargets().put(ci.getName(),
-                            buildBlobTable(tab.getTarget(), ci));
-                }
-            }
+        }
+    }
+
+    private boolean isClobOverride(String columnName) {
+        return tab.getTableRef() != null && tab.getTableRef().isClobColumn(columnName);
+    }
+
+    private void validateClobOverride(ColumnInfo ci) {
+        Type type = convertType(ci);
+        if (!PrimitiveType.Text.equals(type)) {
+            throw new RuntimeException("clob-column " + ci.getName()
+                    + " in table " + makeTableName() + " maps to " + type + ", not Text");
         }
     }
 
@@ -53,7 +75,7 @@ public class YdbTableBuilder {
         sb.append("`").append(fullName).append("`");
         sb.append(" (").append(EOL);
         for (ColumnInfo ci : tab.getMetadata().getColumns()) {
-            final Type type;
+            Type type;
             try {
                 type = convertType(ci);
             } catch (Exception ex) {
@@ -116,15 +138,15 @@ public class YdbTableBuilder {
         return new TargetTable(tab, fullName, sb.toString(), StructType.of(types));
     }
 
-    private TargetTable buildBlobTable(TargetTable main, ColumnInfo ci) {
+    private TargetTable buildAuxTable(ColumnInfo ci, String valType, StructType rowType) {
         final StringBuilder sb = new StringBuilder();
         final String fullName = makeBlobName(ci.getDestinationName());
         sb.append("CREATE TABLE `").append(fullName).append("` (").append(EOL);
         sb.append("  `id` Int64,").append(EOL);
         sb.append("  `pos` Int32,").append(EOL);
-        sb.append("  `val` String,").append(EOL);
+        sb.append("  `val` ").append(valType).append(",").append(EOL);
         sb.append("  PRIMARY KEY(`id`, `pos`));").append(EOL);
-        return new TargetTable(tab, fullName, sb.toString(), BlobReader.BLOB_ROW);
+        return new TargetTable(tab, fullName, sb.toString(), rowType);
     }
 
     private String makeTableName() {
@@ -231,7 +253,6 @@ public class YdbTableBuilder {
             case java.sql.Types.NCHAR:
             case java.sql.Types.LONGNVARCHAR:
             case java.sql.Types.LONGVARCHAR:
-            case java.sql.Types.CLOB: // MAYBE: store in a separate table, like BLOBS
                 return PrimitiveType.Text;
             case java.sql.Types.BINARY:
             case java.sql.Types.VARBINARY:
@@ -239,7 +260,10 @@ public class YdbTableBuilder {
             case java.sql.Types.BLOB:
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.SQLXML:
-                return PrimitiveType.Int64; // Id of record sequence in the separate table.
+                return PrimitiveType.Int64; // Id of record sequence in the separate BLOB table.
+            case java.sql.Types.CLOB:
+            case java.sql.Types.NCLOB:
+                return PrimitiveType.Int64; // Id of record sequence in the separate CLOB table.
             case java.sql.Types.DATE:
                 switch (tab.getOptions().getDateConv()) {
                     case DATE_NEW:
