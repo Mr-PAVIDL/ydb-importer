@@ -17,6 +17,7 @@
         <exec.args></exec.args>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>
+        <argLine></argLine>
     </properties>
     <licenses>
         <license>
@@ -299,7 +300,7 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>3.5.4</version>
                         <configuration>
-                            <argLine>--add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
+                            <argLine>@{argLine} --add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
                         </configuration>
                     </plugin>
                     <plugin>
